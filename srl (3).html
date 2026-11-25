@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SRL 學習怪獸測驗｜探索你的自律與自我效能</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap"
+    rel="stylesheet"
+  />
+  <script>
+    tailwind.config = {
+      darkMode: 'media',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans TC"', 'Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    /* 自訂流暢動畫與手帳紙感背景 */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-float {
+      animation: floatSlow 3.2s ease-in-out infinite;
+    }
+    .animate-fade-up {
+      animation: fadeSlideUp 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .dot-grid-bg {
+      background-image: radial-gradient(rgba(100, 116, 139, 0.16) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#FAF7F2] text-slate-800 dark:bg-slate-950 dark:text-slate-100 dot-grid-bg antialiased selection:bg-amber-200 selection:text-slate-900">
+  <!-- 主容器 -->
+  <div id="app" class="min-h-screen flex flex-col justify-between max-w-3xl mx-auto px-4 py-6 sm:px-6 sm:py-10">
+    <!-- 頂部導覽列 -->
+    <header class="flex items-center justify-between gap-3 mb-6">
+      <button
+        type="button"
+        onclick="resetQuiz()"
+        class="inline-flex items-center gap-2 rounded-2xl bg-white/90 dark:bg-slate-900/90 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm border border-slate-200/80 dark:border-slate-800 hover:border-amber-400 transition active:scale-[0.98]"
+      >
+        <span class="text-base">🧠</span>
+        <span>SRL 學習風格測驗</span>
+      </button>
+
+      <div class="inline-flex items-center gap-1.5 rounded-full bg-amber-100/90 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 px-3.5 py-1.5 text-xs font-medium border border-amber-200/80 dark:border-amber-800/60">
+        <span>自我調節學習 × 自我效能</span>
+      </div>
+    </header>
+
+    <!-- 動態主內容區 -->
+    <main id="main-content" class="flex-1 flex flex-col justify-center">
+      <!-- 由 JavaScript 動態渲染首頁、作答頁與結果頁 -->
+    </main>
+
+    <!-- 底部說明 -->
+    <footer class="mt-10 pt-4 border-t border-slate-200/70 dark:border-slate-800/80 text-center text-xs text-slate-500 dark:text-slate-400">
+      結合自我調節學習（SRL）與班杜拉自我效能理論設計｜重點在於覺察與微調，而非貼標籤。
+    </footer>
+  </div>
+
+  <!-- 非阻斷式提示訊息框 -->
+  <div
+    id="toast-box"
+    role="status"
+    aria-live="polite"
+    class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 translate-y-3 transition-all duration-300 rounded-2xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2.5 text-sm font-medium shadow-lg border border-slate-700/40"
+  ></div>
+
+  <script>
+    // =========================================================================
+    // 1. 測驗題庫與四大怪獸結果資料
+    // =========================================================================
+    const QUESTIONS = [
+      {
+        id: 1,
+        tag: '題目一 · 啟動時刻',
+        question: '面對厚厚的數學課本，你的第一反應是？',
+        options: [
+          {
+            key: 'A',
+            emoji: '🙈',
+            text: '眉頭一皺，默默把課本移到視線範圍外，假裝沒看到。',
+            scores: { escape: 2, hedonist: 1 },
+          },
+          {
+            key: 'B',
+            emoji: '📝',
+            text: '立刻拿出一張白紙，開始規劃從第一頁讀到最後一頁的完美計畫（耗時一小時）。',
+            scores: { perfectionist: 2 },
+          },
+          {
+            key: 'C',
+            emoji: '⏰',
+            text: '先打開 IG 滑個 10 分鐘壓壓驚，告訴自己「整點」再開始。',
+            scores: { hedonist: 2 },
+          },
+          {
+            key: 'D',
+            emoji: '😤',
+            text: '嘆口氣，翻開目錄，想說先寫個兩題練習看看好了。',
+            scores: { action: 2 },
+          },
+        ],
+      },
+      {
+        id: 2,
+        tag: '題目二 · 干擾考驗',
+        question: '好不容易開始專心讀書了，手機突然震動跳出訊息，你會？',
+        options: [
+          {
+            key: 'A',
+            emoji: '📱💬',
+            text: '瞬間被吸走，心想「回個貼圖應該沒差」，然後就回不去了。',
+            scores: { hedonist: 2 },
+          },
+          {
+            key: 'B',
+            emoji: '🔒',
+            text: '把它關機丟到抽屜深處，展現絕不妥協的意志力！',
+            scores: { perfectionist: 2 },
+          },
+          {
+            key: 'C',
+            emoji: '👀',
+            text: '瞄一眼，如果是重要的人就回，不是就繼續讀（自以為能一心二用）。',
+            scores: { hedonist: 1, escape: 1 },
+          },
+          {
+            key: 'D',
+            emoji: '🍅',
+            text: '設定番茄鐘，告訴自己「專心讀完這 25 分鐘再看」，把手機蓋起來。',
+            scores: { action: 2 },
+          },
+        ],
+      },
+      {
+        id: 3,
+        tag: '題目三 · 遇到瓶頸',
+        question: '如果你發現自己進度落後，而且有些地方看不懂，你的下一步是？',
+        options: [
+          {
+            key: 'A',
+            emoji: '🛌',
+            text: '覺得完蛋了，反正也補不回來，索性放棄直接睡覺。',
+            scores: { escape: 2 },
+          },
+          {
+            key: 'B',
+            emoji: '🤯',
+            text: '超焦慮，開始瘋狂熬夜硬背，不管到底有沒有理解。',
+            scores: { perfectionist: 2 },
+          },
+          {
+            key: 'C',
+            emoji: '😇',
+            text: '先放著，安慰自己「明天老師上課一定會講到，到時候再聽就好」。',
+            scores: { escape: 1, hedonist: 1 },
+          },
+          {
+            key: 'D',
+            emoji: '🧩',
+            text: '將不會的地方圈起來，拆解成小問題，去問同學或查網路，一個一個解決。',
+            scores: { action: 2 },
+          },
+        ],
+      },
+      {
+        id: 4,
+        tag: '題目四 · 計畫態度',
+        question: '對於「做讀書計畫」這件事，你的看法是？',
+        options: [
+          {
+            key: 'A',
+            emoji: '🙅‍♂️',
+            text: '計畫趕不上變化，做計畫根本是浪費時間。',
+            scores: { escape: 2 },
+          },
+          {
+            key: 'B',
+            emoji: '🗓️',
+            text: '一定要做到「鉅細靡遺」，連幾點幾分上廁所都要寫進去才安心。',
+            scores: { perfectionist: 2 },
+          },
+          {
+            key: 'C',
+            emoji: '😅',
+            text: '做好了，然後貼在牆壁上，從來沒有實施過。',
+            scores: { hedonist: 1, escape: 1 },
+          },
+          {
+            key: 'D',
+            emoji: '✅',
+            text: '將大目標拆解成每週、每天的小任務，完成一個就打勾，很有成就感。',
+            scores: { action: 2 },
+          },
+        ],
+      },
+    ];
+
+    const RESULTS = {
+      perfectionist: {
+        id: 'perfectionist',
+        badge: '結果類型一',
+        title: '完美主義拖延怪',
+        srlTag: '對應 SRL 預視階段困難',
+        character: '妙麗（雖然最後都做得到，但過程極度焦慮）',
+        icon: '🏆',
+        accentClass: 'from-amber-500/15 via-orange-500/10 to-rose-500/10 border-amber-300/80 dark:border-amber-700/70',
+        pillClass: 'bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200',
+        diagnosis:
+          '你對自己要求很高，但因為目標設定得太龐大、太完美，導致你害怕失敗，連第一步都跨不出去。這其實是「自我效能感」過低，覺得自己做不到「完美」，所以乾脆不做。',
+        strategyTitle: '「微目標拆解法」',
+        tips: [
+          '別想著要「讀完這本書」，只要想著「我今天只要弄懂這一個觀念」。',
+          '將任務拆解到小到讓你覺得「這也太簡單了吧」的程度，降低啟動門檻，累積小小的成功體驗。',
+        ],
+        actionPrompt: '今天立刻挑出 1 個最小觀念，花 10 分鐘先求「有做完」，不求「完美」！',
+      },
+      hedonist: {
+        id: 'hedonist',
+        badge: '結果類型二',
+        title: '及時行樂享樂怪',
+        srlTag: '對應 SRL 表現階段意志控制困難',
+        character: '懶懶熊',
+        icon: '🛡️',
+        accentClass: 'from-sky-500/15 via-cyan-500/10 to-indigo-500/10 border-sky-300/80 dark:border-sky-700/70',
+        pillClass: 'bg-sky-100 text-sky-900 dark:bg-sky-900/60 dark:text-sky-200',
+        diagnosis:
+          '你的專注力容易被外界誘惑（手機、遊戲）拉走，缺乏意志控制。你活在當下，覺得讀書太痛苦，總是把希望寄託在「明天」。',
+        strategyTitle: '「視覺化監控」+「環境控制」',
+        tips: [
+          '讀書時把手機放到另一個房間，或交給爸媽保管。',
+          '使用番茄鐘或網頁監控工具（例如 Forest App），讓你的「專注時間」視覺化。每堅持一小段時間，就給自己一點小小的娛樂獎勵。',
+        ],
+        actionPrompt: '現在就把手機放進抽屜或另一個房間，開啟 25 分鐘專注計時，結束後再給自己小獎勵。',
+      },
+      escape: {
+        id: 'escape',
+        badge: '結果類型三',
+        title: '自我放棄逃避怪',
+        srlTag: '對應自我效能感低落',
+        character: '悲傷蛙',
+        icon: '🏳️',
+        accentClass: 'from-slate-400/20 via-zinc-400/10 to-teal-500/10 border-slate-300/90 dark:border-slate-700',
+        pillClass: 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
+        diagnosis:
+          '你曾經嘗試過要努力，但因為遇到挫折（看不懂、考不好），覺得自己「很笨」，從此對讀書感到無力。你的自我效能感極低，處於習得無助感中。',
+        strategyTitle: '「尋求替代經驗」+「關注微小進步」',
+        tips: [
+          '找一個程度和你差不多，但最近有進步的同學，看看他是怎麼做到的（替代經驗）。',
+          '不要跟班排第一的人比，只要跟昨天的自己比。就算今天只多背了一個單字，也要大大地稱讚自己！',
+        ],
+        actionPrompt: '今天只要完成一件極小的事（例如搞懂 1 題或背 1 個詞），就肯定自己今天比昨天前進了一點。',
+      },
+      action: {
+        id: 'action',
+        badge: '結果類型四',
+        title: '行動派潛力股',
+        srlTag: 'SRL 高手',
+        character: '穩健進化的自我學習者',
+        icon: '🌟',
+        accentClass: 'from-emerald-500/15 via-teal-500/10 to-lime-500/10 border-emerald-300/80 dark:border-emerald-700/70',
+        pillClass: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/60 dark:text-emerald-200',
+        diagnosis:
+          '恭喜你！你已經具備了 SRL 的基礎能力。你懂得將大目標拆解，也能在一定程度上控制自己不滑手機。你是自己的學習主人！',
+        strategyTitle: '「自我反思與調整」',
+        tips: [
+          '繼續保持微目標拆解的習慣。',
+          '在讀書計畫中加入「休息」與「反思」的時間，檢討今天的效率，並為明天的狀況做微調。',
+        ],
+        actionPrompt: '今天結束前花 3 分鐘寫下：哪個方法最有效？明天哪裡可以微調得更輕鬆？',
+      },
+    };
+
+    // =========================================================================
+    // 2. 測驗狀態與互動邏輯
+    // =========================================================================
+    const state = {
+      screen: 'intro', // 'intro' | 'quiz' | 'result'
+      currentIndex: 0,
+      answers: {},
+    };
+
+    let toastTimer = null;
+
+    function showToast(message) {
+      const toast = document.getElementById('toast-box');
+      if (!toast) return;
+      toast.textContent = message;
+      toast.classList.remove('opacity-0', 'translate-y-3', 'pointer-events-none');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-3', 'pointer-events-none');
+      }, 2600);
+    }
+
+    function startQuiz() {
+      state.screen = 'quiz';
+      state.currentIndex = 0;
+      state.answers = {};
+      render();
+    }
+
+    function resetQuiz() {
+      state.screen = 'intro';
+      state.currentIndex = 0;
+      state.answers = {};
+      render();
+    }
+
+    function selectOption(questionId, optionKey) {
+      state.answers[questionId] = optionKey;
+      render();
+
+      window.setTimeout(() => {
+        if (state.currentIndex < QUESTIONS.length - 1) {
+          state.currentIndex += 1;
+          render();
+        } else {
+          state.screen = 'result';
+          render();
+        }
+      }, 220);
+    }
+
+    function goPrevQuestion() {
+      if (state.currentIndex > 0) {
+        state.currentIndex -= 1;
+        render();
+      } else {
+        state.screen = 'intro';
+        render();
+      }
+    }
+
+    function calculateResult() {
+      const totals = {
+        perfectionist: 0,
+        hedonist: 0,
+        escape: 0,
+        action: 0,
+      };
+
+      for (const q of QUESTIONS) {
+        const chosenKey = state.answers[q.id];
+        const option = q.options.find((opt) => opt.key === chosenKey);
+        if (option && option.scores) {
+          for (const [typeKey, pts] of Object.entries(option.scores)) {
+            totals[typeKey] = (totals[typeKey] || 0) + pts;
+          }
+        }
+      }
+
+      const priority = ['action', 'perfectionist', 'hedonist', 'escape'];
+      let bestType = 'action';
+      let bestScore = -1;
+
+      for (const typeKey of priority) {
+        if (totals[typeKey] > bestScore) {
+          bestScore = totals[typeKey];
+          bestType = typeKey;
+        }
+      }
+
+      return {
+        winner: RESULTS[bestType],
+        totals,
+      };
+    }
+
+    function copyResultSummary() {
+      const { winner } = calculateResult();
+      const summaryText = [
+        `【SRL 學習怪獸測驗結果】${winner.icon} ${winner.title}（${winner.srlTag}）`,
+        `代表人物：${winner.character}`,
+        `診斷：${winner.diagnosis}`,
+        `破關秘籍（${winner.strategyTitle}）：${winner.tips.join(' / ')}`,
+      ].join('\n');
+
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = summaryText;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        if (ok) {
+          showToast('已複製測驗結果與破關秘籍，可直接貼上分享！');
+        } else {
+          showToast('目前環境無法自動複製，可手動選取文字複製。');
+        }
+      } catch (err) {
+        showToast('複製時發生問題，請手動選取結果文字。');
+      }
+    }
+
+    // =========================================================================
+    // 3. 畫面渲染函式
+    // =========================================================================
+    function renderIntro() {
+      return `
+        <section class="animate-fade-up rounded-3xl bg-white/95 dark:bg-slate-900/95 p-6 sm:p-10 shadow-sm border border-slate-200/80 dark:border-slate-800">
+          <div class="inline-flex items-center gap-2 rounded-full bg-amber-100/90 dark:bg-amber-950/70 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-amber-900 dark:text-amber-200 mb-5">
+            <span>4 道情境題 · 約 1 分鐘完成</span>
+          </div>
+
+          <h1 class="text-2xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight mb-4">
+            SRL 學習風格測驗：<br class="hidden sm:inline" />
+            你是哪種讀書怪獸？
+          </h1>
+
+          <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed mb-7">
+            找出你的讀書盲點，發掘專屬破關秘籍！這份測驗結合心理學中的<strong>「自我調節學習（SRL）」</strong>與<strong>「自我效能感」</strong>，陪你一起成為自己的學習主人。
+          </p>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+            <div class="rounded-2xl bg-amber-50/80 dark:bg-slate-800/70 p-3.5 border border-amber-200/60 dark:border-slate-700/70">
+              <div class="text-2xl mb-1">🏆</div>
+              <div class="text-xs font-bold text-slate-800 dark:text-slate-100">完美主義拖延怪</div>
+            </div>
+            <div class="rounded-2xl bg-sky-50/80 dark:bg-slate-800/70 p-3.5 border border-sky-200/60 dark:border-slate-700/70">
+              <div class="text-2xl mb-1">🛡️</div>
+              <div class="text-xs font-bold text-slate-800 dark:text-slate-100">及時行樂享樂怪</div>
+            </div>
+            <div class="rounded-2xl bg-slate-100/80 dark:bg-slate-800/70 p-3.5 border border-slate-200/80 dark:border-slate-700/70">
+              <div class="text-2xl mb-1">🏳️</div>
+              <div class="text-xs font-bold text-slate-800 dark:text-slate-100">自我放棄逃避怪</div>
+            </div>
+            <div class="rounded-2xl bg-emerald-50/80 dark:bg-slate-800/70 p-3.5 border border-emerald-200/60 dark:border-slate-700/70">
+              <div class="text-2xl mb-1">🌟</div>
+              <div class="text-xs font-bold text-slate-800 dark:text-slate-100">行動派潛力股</div>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <button
+              type="button"
+              onclick="startQuiz()"
+              class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 dark:bg-amber-400 text-white dark:text-slate-950 font-bold text-base px-8 py-4 shadow-md hover:bg-slate-800 dark:hover:bg-amber-300 transition active:scale-[0.98]"
+            >
+              <span>開始測驗</span>
+              <span aria-hidden="true">→</span>
+            </button>
+            <span class="text-xs text-slate-500 dark:text-slate-400 text-center sm:text-left">
+              依照直覺作答即可，沒有標準答案
+            </span>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderQuestion() {
+      const q = QUESTIONS[state.currentIndex];
+      const selectedKey = state.answers[q.id];
+      const progressPercent = Math.round(((state.currentIndex + 1) / QUESTIONS.length) * 100);
+
+      const optionsHtml = q.options
+        .map((opt) => {
+          const isSelected = selectedKey === opt.key;
+          return `
+            <button
+              type="button"
+              onclick="selectOption(${q.id}, '${opt.key}')"
+              class="w-full text-left rounded-2xl p-4 sm:p-5 border-2 transition-all duration-200 flex items-start gap-3.5 sm:gap-4 active:scale-[0.99] ${
+                isSelected
+                  ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-500 dark:border-amber-400 shadow-sm'
+                  : 'bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-700 hover:bg-amber-50/30 dark:hover:bg-slate-800/70'
+              }"
+            >
+              <span class="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm ${
+                isSelected
+                  ? 'bg-amber-500 text-white dark:bg-amber-400 dark:text-slate-950'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+              }">
+                ${opt.key}
+              </span>
+              <span class="text-2xl leading-none pt-0.5 select-none" aria-hidden="true">${opt.emoji}</span>
+              <span class="flex-1 text-sm sm:text-base font-medium text-slate-800 dark:text-slate-100 leading-relaxed">
+                ${opt.text}
+              </span>
+            </button>
+          `;
+        })
+        .join('');
+
+      return `
+        <section class="animate-fade-up rounded-3xl bg-white/95 dark:bg-slate-900/95 p-5 sm:p-8 shadow-sm border border-slate-200/80 dark:border-slate-800">
+          <!-- 進度條 -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between text-xs sm:text-sm font-semibold mb-2">
+              <span class="text-amber-700 dark:text-amber-300">${q.tag}</span>
+              <span class="text-slate-500 dark:text-slate-400">第 ${state.currentIndex + 1} / ${QUESTIONS.length} 題（${progressPercent}%）</span>
+            </div>
+            <div class="w-full h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div
+                class="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-300"
+                style="width: ${progressPercent}%"
+              ></div>
+            </div>
+          </div>
+
+          <!-- 題目 -->
+          <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-snug mb-6">
+            ${q.question}
+          </h2>
+
+          <!-- 選項列表 -->
+          <div class="space-y-3 mb-7">
+            ${optionsHtml}
+          </div>
+
+          <!-- 底部控制 -->
+          <div class="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onclick="goPrevQuestion()"
+              class="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            >
+              <span>←</span>
+              <span>${state.currentIndex === 0 ? '回到說明' : '上一題'}</span>
+            </button>
+
+            <span class="text-xs text-slate-400 dark:text-slate-500">
+              點選選項即可自動前往下一題
+            </span>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderResult() {
+      const { winner, totals } = calculateResult();
+
+      const tipsHtml = winner.tips
+        .map(
+          (tip) => `
+            <li class="flex items-start gap-3 text-sm sm:text-base text-slate-700 dark:text-slate-200 leading-relaxed">
+              <span class="shrink-0 mt-1.5 w-2 h-2 rounded-full bg-amber-500"></span>
+              <span>${tip}</span>
+            </li>
+          `
+        )
+        .join('');
+
+      const scoreBreakdown = [
+        { key: 'perfectionist', label: '完美主義拖延', icon: '🏆', val: totals.perfectionist },
+        { key: 'hedonist', label: '及時行樂享樂', icon: '🛡️', val: totals.hedonist },
+        { key: 'escape', label: '自我放棄逃避', icon: '🏳️', val: totals.escape },
+        { key: 'action', label: '行動派潛力股', icon: '🌟', val: totals.action },
+      ]
+        .map(
+          (item) => `
+            <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/70 px-3.5 py-2.5 border border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between">
+              <span class="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200">${item.icon} ${item.label}</span>
+              <span class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">${item.val} 分</span>
+            </div>
+          `
+        )
+        .join('');
+
+      return `
+        <section class="animate-fade-up space-y-5">
+          <!-- 主結果卡片 -->
+          <div class="rounded-3xl bg-gradient-to-br ${winner.accentClass} bg-white/95 dark:bg-slate-900/95 p-6 sm:p-8 shadow-sm border">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <span class="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold ${winner.pillClass}">
+                ${winner.badge}
+              </span>
+              <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white/80 dark:bg-slate-800/80 px-3 py-1 rounded-full border border-slate-200/70 dark:border-slate-700">
+                ${winner.srlTag}
+              </span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 mb-6">
+              <div class="animate-float w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-4xl sm:text-5xl select-none shrink-0">
+                ${winner.icon}
+              </div>
+              <div>
+                <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                  【${winner.title}】
+                </h1>
+                <p class="mt-1.5 text-sm sm:text-base font-medium text-slate-700 dark:text-slate-300">
+                  代表人物：${winner.character}
+                </p>
+              </div>
+            </div>
+
+            <!-- 你的診斷 -->
+            <div class="rounded-2xl bg-white/85 dark:bg-slate-900/85 p-4 sm:p-5 border border-white/80 dark:border-slate-800 mb-5">
+              <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                你的診斷
+              </h2>
+              <p class="text-sm sm:text-base text-slate-800 dark:text-slate-100 leading-relaxed">
+                ${winner.diagnosis}
+              </p>
+            </div>
+
+            <!-- 破關秘籍 -->
+            <div class="rounded-2xl bg-white/95 dark:bg-slate-900/95 p-4 sm:p-5 border border-amber-200/80 dark:border-amber-800/50">
+              <div class="flex flex-wrap items-center gap-2 mb-3">
+                <span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200">
+                  破關秘籍（SRL 策略）
+                </span>
+                <h3 class="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">
+                  ${winner.strategyTitle}
+                </h3>
+              </div>
+
+              <ul class="space-y-3 mb-4">
+                ${tipsHtml}
+              </ul>
+
+              <div class="rounded-xl bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-xs sm:text-sm font-semibold text-amber-950 dark:text-amber-200 border border-amber-200/70 dark:border-amber-800/50">
+                💡 今日微行動：${winner.actionPrompt}
+              </div>
+            </div>
+          </div>
+
+          <!-- 四種傾向分布參考 -->
+          <div class="rounded-3xl bg-white/90 dark:bg-slate-900/90 p-5 sm:p-6 shadow-sm border border-slate-200/80 dark:border-slate-800">
+            <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">
+              四種傾向分布參考
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              ${scoreBreakdown}
+            </div>
+          </div>
+
+          <!-- 底部操作按鈕 -->
+          <div class="flex flex-col sm:flex-row gap-3 pt-1">
+            <button
+              type="button"
+              onclick="copyResultSummary()"
+              class="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 dark:bg-amber-400 text-white dark:text-slate-950 font-bold text-sm sm:text-base px-6 py-4 shadow-sm hover:bg-slate-800 dark:hover:bg-amber-300 transition active:scale-[0.98]"
+            >
+              <span>📋</span>
+              <span>複製結果與破關秘籍</span>
+            </button>
+            <button
+              type="button"
+              onclick="startQuiz()"
+              class="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-bold text-sm sm:text-base px-6 py-4 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition active:scale-[0.98]"
+            >
+              <span>🔄</span>
+              <span>重新測驗一次</span>
+            </button>
+          </div>
+        </section>
+      `;
+    }
+
+    function render() {
+      const main = document.getElementById('main-content');
+      if (!main) return;
+
+      try {
+        if (state.screen === 'intro') {
+          main.innerHTML = renderIntro();
+        } else if (state.screen === 'quiz') {
+          main.innerHTML = renderQuestion();
+        } else if (state.screen === 'result') {
+          main.innerHTML = renderResult();
+        }
+      } catch (err) {
+        main.innerHTML = `
+          <div class="rounded-3xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 p-6 text-center">
+            <p class="font-bold text-rose-800 dark:text-rose-200 mb-3">畫面渲染時發生錯誤，請重新整理或再試一次。</p>
+            <button
+              type="button"
+              onclick="resetQuiz()"
+              class="rounded-xl bg-rose-600 text-white px-4 py-2 text-sm font-semibold"
+            >
+              回到首頁
+            </button>
+          </div>
+        `;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', render);
+  </script>
+</body>
+</html>
